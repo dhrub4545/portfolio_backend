@@ -21,11 +21,21 @@ app.use(express.urlencoded({ extended: true }));
 // Serve assets folder if needed
 app.use('/assets', express.static(path.join(__dirname, '../assets')));
 
-// API routes
+// Mount routes under both /api and root / for seamless Vercel serverless routing
 app.use('/api', apiRoutes);
+app.use('/', apiRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'Dhrub Pandit Portfolio API',
+    uptime: process.uptime()
+  });
+});
+
+app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -38,6 +48,7 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to Dhrub Pandit Portfolio Backend API',
+    status: 'online',
     endpoints: {
       profile: '/api/profile',
       chat: '/api/chat',
@@ -49,7 +60,11 @@ app.get('/', (req, res) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Dhrub Pandit Portfolio Backend running on http://localhost:${PORT}`);
-});
+// Start local server when run directly (e.g. node src/server.js)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Dhrub Pandit Portfolio Backend running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;

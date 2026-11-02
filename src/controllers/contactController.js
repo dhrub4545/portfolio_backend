@@ -1,33 +1,46 @@
 const fs = require('fs');
 const path = require('path');
 
-const MESSAGES_FILE = path.join(__dirname, '../../data/messages.json');
-const STATS_FILE = path.join(__dirname, '../../data/stats.json');
+// Determine data directory (Vercel serverless functions have a read-only filesystem except /tmp)
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const DATA_DIR = isServerless ? path.join('/tmp', 'portfolio_data') : path.join(__dirname, '../../data');
+const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json');
+const STATS_FILE = path.join(DATA_DIR, 'stats.json');
 
-// Ensure data directory exists
+// In-memory fallback in case filesystem is not available
+let inMemoryMessages = [];
+let inMemoryStats = {
+  views: 1420,
+  messagesSent: 0,
+  lastUpdated: new Date().toISOString()
+};
+
 function ensureDataFiles() {
-  const dataDir = path.join(__dirname, '../../data');
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
 
-  if (!fs.existsSync(MESSAGES_FILE)) {
-    fs.writeFileSync(MESSAGES_FILE, JSON.stringify([], null, 2));
-  }
+    if (!fs.existsSync(MESSAGES_FILE)) {
+      fs.writeFileSync(MESSAGES_FILE, JSON.stringify([], null, 2));
+    }
 
-  if (!fs.existsSync(STATS_FILE)) {
-    fs.writeFileSync(
-      STATS_FILE,
-      JSON.stringify(
-        {
-          views: 1420,
-          messagesSent: 0,
-          lastUpdated: new Date().toISOString()
-        },
-        null,
-        2
-      )
-    );
+    if (!fs.existsSync(STATS_FILE)) {
+      fs.writeFileSync(
+        STATS_FILE,
+        JSON.stringify(
+          {
+            views: 1420,
+            messagesSent: 0,
+            lastUpdated: new Date().toISOString()
+          },
+          null,
+          2
+        )
+      );
+    }
+  } catch (err) {
+    console.warn('Filesystem access limited, operating with in-memory store:', err.message);
   }
 }
 
@@ -53,10 +66,6 @@ function submitContact(req, res) {
       });
     }
 
-    ensureDataFiles();
-    const rawMessages = fs.readFileSync(MESSAGES_FILE, 'utf-8');
-    const messages = JSON.parse(rawMessages || '[]');
-
     const newMessage = {
       id: 'msg_' + Date.now(),
       name: name.trim(),
@@ -66,18 +75,35 @@ function submitContact(req, res) {
       createdAt: new Date().toISOString()
     };
 
-    messages.push(newMessage);
-    fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2));
+    inMemoryMessages.push(newMessage);
+
+    try {
+      ensureDataFiles();
+      if (fs.existsSync(MESSAGES_FILE)) {
+        const rawMessages = fs.readFileSync(MESSAGES_FILE, 'utf-8');
+        const messages = JSON.parse(rawMessages || '[]');
+        messages.push(newMessage);
+        fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2));
+      }
+    } catch (e) {
+      console.warn('Could not persist message to disk (retained in-memory):', e.message);
+    }
 
     // Update stats
+    inMemoryStats.messagesSent += 1;
+    inMemoryStats.lastUpdated = new Date().toISOString();
+
     try {
-      const rawStats = fs.readFileSync(STATS_FILE, 'utf-8');
-      const stats = JSON.parse(rawStats || '{}');
-      stats.messagesSent = (stats.messagesSent || 0) + 1;
-      stats.lastUpdated = new Date().toISOString();
-      fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+      ensureDataFiles();
+      if (fs.existsSync(STATS_FILE)) {
+        const rawStats = fs.readFileSync(STATS_FILE, 'utf-8');
+        const stats = JSON.parse(rawStats || '{}');
+        stats.messagesSent = (stats.messagesSent || 0) + 1;
+        stats.lastUpdated = new Date().toISOString();
+        fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+      }
     } catch (e) {
-      console.warn('Failed to update stats:', e.message);
+      // Ignored in serverless
     }
 
     return res.status(201).json({
@@ -96,12 +122,19 @@ function submitContact(req, res) {
 
 function getStats(req, res) {
   try {
-    ensureDataFiles();
-    const rawStats = fs.readFileSync(STATS_FILE, 'utf-8');
-    const stats = JSON.parse(rawStats || '{}');
+    let currentViews = inMemoryStats.views;
+    try {
+      ensureDataFiles();
+      if (fs.existsSync(STATS_FILE)) {
+        const rawStats = fs.readFileSync(STATS_FILE, 'utf-8');
+        const stats = JSON.parse(rawStats || '{}');
+        if (stats.views) currentViews = stats.views;
+      }
+    } catch (e) {}
+
     return res.json({
-      views: stats.views || 1420,
-      messagesSent: stats.messagesSent || 0,
+      views: currentViews || 1420,
+      messagesSent: inMemoryStats.messagesSent || 0,
       status: 'Available for full-time & AI contracts',
       liveProjects: 6,
       modelsBenchmarked: 579,
@@ -120,13 +153,22 @@ function getStats(req, res) {
 
 function recordPageView(req, res) {
   try {
-    ensureDataFiles();
-    const rawStats = fs.readFileSync(STATS_FILE, 'utf-8');
-    const stats = JSON.parse(rawStats || '{}');
-    stats.views = (stats.views || 1420) + 1;
-    stats.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
-    return res.json({ success: true, views: stats.views });
+    inMemoryStats.views += 1;
+    inMemoryStats.lastUpdated = new Date().toISOString();
+
+    try {
+      ensureDataFiles();
+      if (fs.existsSync(STATS_FILE)) {
+        const rawStats = fs.readFileSync(STATS_FILE, 'utf-8');
+        const stats = JSON.parse(rawStats || '{}');
+        stats.views = (stats.views || 1420) + 1;
+        stats.lastUpdated = new Date().toISOString();
+        fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+        return res.json({ success: true, views: stats.views });
+      }
+    } catch (e) {}
+
+    return res.json({ success: true, views: inMemoryStats.views });
   } catch (error) {
     return res.json({ success: false });
   }

@@ -132,6 +132,24 @@ Downloads `Dhrub_Pandit_Resume.pdf`.
 
 ---
 
+## 🚀 Vercel Deployment
+
+This backend is 100% pre-configured for Vercel Serverless Functions via `vercel.json` and `api/index.js`.
+
+### Deploying via Vercel Dashboard
+1. Go to [vercel.com/new](https://vercel.com/new) and import the **`portfolio_backend`** repository.
+2. In **Environment Variables**, optionally set:
+   * `GEMINI_API_KEY`: *(Your Google Gemini API Key for dynamic LLM responses)*
+3. Click **Deploy**.
+4. Once deployed, note down your production URL (e.g. `https://portfolio-backend.vercel.app`).
+5. Your API endpoints are immediately accessible:
+   * `https://your-backend.vercel.app/api/health`
+   * `https://your-backend.vercel.app/api/chat`
+   * `https://your-backend.vercel.app/api/contact`
+   * `https://your-backend.vercel.app/api/profile`
+
+---
+
 ## 👨‍💻 Author
 **Dhrub Pandit**
 * Full Stack & AI Engineer
