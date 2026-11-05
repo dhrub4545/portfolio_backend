@@ -134,7 +134,7 @@ You can filter and explore all of them in the **Projects** section on this page!
 • **Phone:** +9779803862836
 • **GitHub:** [github.com/dhrub4545](https://github.com/dhrub4545)
 • **LinkedIn:** [linkedin.com/in/dhrub-pandit](https://www.linkedin.com)
-• **LeetCode:** [leetcode.com/u/panditdhrub0/](https://leetcode.com/u/panditdhrub0/)
+• **LeetCode:** [leetcode.com/u/Dhrub417183/](https://leetcode.com/u/Dhrub417183/)
 
 You can also send a direct message using the interactive **Contact Form** at the bottom of the page!`;
   }

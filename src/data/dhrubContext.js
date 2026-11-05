@@ -13,7 +13,7 @@ const dhrubProfile = {
     location: "Bengaluru, India / Nepal",
     github: "https://github.com/dhrub4545",
     linkedin: "https://www.linkedin.com/in/dhrub-pandit",
-    leetcode: "https://leetcode.com/u/panditdhrub0/",
+    leetcode: "https://leetcode.com/u/Dhrub417183/",
     portfolioLive: "https://www.audexai.in",
     summary:
       "Nepal Engineering Council (NEC) licensed Computer Science Engineer with hands-on experience building scalable full-stack web applications using React.js, Node.js, Express.js, and MongoDB. Experienced in authentication systems (OAuth 2.0, JWT), REST API development, AI API integrations, and cloud deployment. Passionate about backend engineering, distributed systems, and building AI-powered SaaS products."
