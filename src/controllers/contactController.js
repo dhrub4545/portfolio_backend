@@ -46,6 +46,39 @@ function ensureDataFiles() {
 
 ensureDataFiles();
 
+async function sendWhatsAppNotification(name, email, subject, message) {
+  const apiKey = process.env.CALLMEBOT_API_KEY;
+  const phone = process.env.WHATSAPP_PHONE || '+9779803862836';
+
+  if (!apiKey) {
+    return; // CallMeBot key not configured
+  }
+
+  const text = `🔔 *New Portfolio Inquiry!*
+👤 *From:* ${name}
+📧 *Email:* ${email}
+📌 *Subject:* ${subject}
+
+💬 *Message:*
+${message}
+
+⏰ *Received:* ${new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kathmandu' })} (Nepal Time)`;
+
+  try {
+    const cleanPhone = phone.replace(/[^\d+]/g, '');
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(cleanPhone)}&text=${encodeURIComponent(text)}&apikey=${apiKey.trim()}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (res.ok) {
+      console.log(`[Contact] WhatsApp alert dispatched successfully to ${cleanPhone}`);
+    }
+  } catch (err) {
+    console.warn('[Contact] WhatsApp notification dispatch warning:', err.message);
+  }
+}
+
 function submitContact(req, res) {
   try {
     const { name, email, subject, message } = req.body;
@@ -105,6 +138,11 @@ function submitContact(req, res) {
     } catch (e) {
       // Ignored in serverless
     }
+
+    // Forward notification to WhatsApp if CallMeBot is configured
+    sendWhatsAppNotification(newMessage.name, newMessage.email, newMessage.subject, newMessage.message).catch(
+      (err) => console.warn('[Contact] Async WhatsApp delivery error:', err.message)
+    );
 
     return res.status(201).json({
       success: true,
