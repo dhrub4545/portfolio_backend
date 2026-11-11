@@ -194,11 +194,11 @@ Would you like to know more about his **projects**, **skills**, **experience**, 
 async function queryGemini(prompt, history, apiKey) {
   const candidateModels = [
     process.env.GEMINI_MODEL,
-    'gemini-3.8-flash',
     'gemini-flash-latest',
+    'gemini-3.8-flash',
     'gemini-3.5-flash',
-    'gemini-4-argon',
-    'gemini-2.5-flash'
+    'gemini-flash-lite-latest',
+    'gemini-pro-latest'
   ].filter(Boolean);
 
   const systemInstruction = `You are the official AI Assistant for Dhrub Pandit's personal portfolio website. 

@@ -45,19 +45,37 @@ router.get('/chat/test', async (req, res) => {
       .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
       .map(m => m.name.replace('models/', ''));
 
-    // Try gemini-3.8-flash
-    const testModel = contentModels.find(m => m === 'gemini-3.8-flash') || contentModels.find(m => m === 'gemini-flash-latest') || 'gemini-3.8-flash';
-    const genRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${testModel}:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: 'Respond with: PONG from Gemini 3.8 Flash' }] }] })
-    });
-    const genData = await genRes.json();
+    // Try candidate models in order until one succeeds
+    const candidates = [process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-pro-latest'].filter(Boolean);
+    let successfulModel = null;
+    let successfulResult = null;
+    let modelAttempts = [];
+
+    for (const model of candidates) {
+      try {
+        const genRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: 'Respond in one short sentence: Gemini API is online!' }] }] })
+        });
+        const genData = await genRes.json();
+        const text = genData.candidates?.[0]?.content?.parts?.[0]?.text;
+        modelAttempts.push({ model, status: genRes.status, success: !!text, response: text || genData.error?.message });
+        if (text) {
+          successfulModel = model;
+          successfulResult = text;
+          break;
+        }
+      } catch (err) {
+        modelAttempts.push({ model, error: err.message });
+      }
+    }
 
     return res.json({
       googleConnected: true,
-      testedModel: testModel,
-      genResult: genData.candidates?.[0]?.content?.parts?.[0]?.text || genData
+      successfulModel,
+      reply: successfulResult,
+      attempts: modelAttempts
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });
