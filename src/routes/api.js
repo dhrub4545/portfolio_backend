@@ -21,7 +21,7 @@ router.get('/chat/status', (req, res) => {
     status: 'ok',
     geminiKeyConfigured: hasKey,
     geminiKeyLength: keyLength,
-    candidateModels: [process.env.GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'].filter(Boolean),
+    candidateModels: [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash', 'gemini-4-argon'].filter(Boolean),
     timestamp: new Date().toISOString()
   });
 });
@@ -45,19 +45,17 @@ router.get('/chat/test', async (req, res) => {
       .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
       .map(m => m.name.replace('models/', ''));
 
-    // Try a simple generateContent call
-    const testModel = contentModels.find(m => m.includes('flash')) || contentModels[0] || 'gemini-1.5-flash';
+    // Try gemini-3.8-flash
+    const testModel = contentModels.find(m => m === 'gemini-3.8-flash') || contentModels.find(m => m === 'gemini-flash-latest') || 'gemini-3.8-flash';
     const genRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${testModel}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: 'Respond with: PONG' }] }] })
+      body: JSON.stringify({ contents: [{ parts: [{ text: 'Respond with: PONG from Gemini 3.8 Flash' }] }] })
     });
     const genData = await genRes.json();
 
     return res.json({
       googleConnected: true,
-      allModelsCount: allModels.length,
-      contentModels,
       testedModel: testModel,
       genResult: genData.candidates?.[0]?.content?.parts?.[0]?.text || genData
     });
