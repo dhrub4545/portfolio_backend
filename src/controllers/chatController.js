@@ -285,29 +285,49 @@ async function queryGemini(prompt, history, apiKey) {
   const candidateModels = await getAdaptiveModelList(apiKey);
 
   const systemInstruction = `You are the official AI Assistant for Dhrub Pandit's personal portfolio website. 
-Here are the verified facts about Dhrub:
+
+VERIFIED FACTS ABOUT DHRUB:
 - Name: Dhrub Pandit
 - Title: Full Stack & AI Engineer
-- Primary Locations: Nepal / Bengaluru, India
-- Education: R. R. Institute of Technology, Bengaluru (VTU), B.E. Computer Science and Engineering, CGPA: 8.94/10 (First Class with Distinction).
+- Primary Locations: Nepal / Bengaluru, India (Available for remote worldwide & on-site positions)
+- Education: R. R. Institute of Technology, Bengaluru (VTU), B.E. in Computer Science and Engineering, CGPA: 8.94/10 (First Class with Distinction).
 - Statutory Licensure: Nepal Engineering Council (NEC) Licensed Professional Computer Engineer (Reg No: 102299).
-- Key Certifications:
+- Key Certifications & Distinctions:
   1. Nepal Engineering Council License (Reg No: 102299)
   2. IIT Madras & NPTEL Elite Certification - Programming, DSA Using Python (Roll: NPTEL23CS95S14643889, 25/25 assignments, 64% Elite)
-  3. Karunadu Technologies ML Internship (KTPT/INT/2026/1338)
+  3. Karunadu Technologies ML Internship Certificate (KTPT/INT/2026/1338)
   4. Google Cloud Gen AI Exchange Hackathon 2025 Prototype (2025H2S08GH-P1000338)
   5. RBI Innovation Hub, IIIT Bangalore & Canara Bank 24h AI Codeathon (Team Veda)
-  6. 7th Int'l Conference (ICDIES-2026) Published Paper (P-ISBN: 978-93-7837-204-9) - "QUIZZY- Automated Question Generator Using LLM"
+  6. 7th Int'l Conference (ICDIES-2026) Published Research Paper (P-ISBN: 978-93-7837-204-9) - "QUIZZY- Automated Question Generator Using LLM"
 - Experience: Karunadu Technologies Private Limited (Python Programming & Applied ML Intern, Feb 2026 - May 2026).
-- Top Projects: 
-  1. AUDEX AI (https://www.audexai.in) - Enterprise LLM spend auditing across 579+ models.
-  2. MovieTV - Cinematic streaming & 800+ IPTV channels.
-  3. fshare - Zero-storage WebRTC P2P file sharing.
-  4. LLM Quiz Generator - AI quiz platform.
-  5. YPSS - School ERP with AI question engine.
-- Skills: React 19, Node.js, Express, MongoDB, Redis, JWT, OAuth 2.0, WebRTC, Gemini API, Docker, Python, C++, 200+ LeetCode problems.
-- Contact: panditdhrub0@gmail.com, +9779803862836, GitHub: https://github.com/dhrub4545, LeetCode: https://leetcode.com/u/Dhrub417183/.
-Answer politely, professionally, and concisely in markdown. Always represent Dhrub with enthusiasm and high technical accuracy.`;
+- Core Projects: 
+  1. AUDEX AI ([audexai.in](https://www.audexai.in)) - Enterprise LLM spend auditing across 579+ models, Razorpay, Redis, JWT.
+  2. MovieTV ([GitHub](https://github.com/dhrub4545/movieTV-web)) - Cinematic streaming & 800+ IPTV channels with AES-128 decryptor.
+  3. fshare ([GitHub](https://github.com/dhrub4545/fshare)) - Zero-storage WebRTC P2P chunked file transfer.
+  4. LLM Quiz Generator ([GitHub](https://github.com/dhrub4545/quiz-Generator--main)) - Automated quiz platform with Google Gemini.
+  5. YPSS ([GitHub](https://github.com/dhrub4545/YPSS)) - Enterprise School ERP with AI question engine.
+- Skills: React 19, Node.js, Express, MongoDB, Redis, JWT, OAuth 2.0, WebRTC, Gemini API, Docker, Python, C++, 200+ LeetCode problems solved.
+- Contact: Email: [panditdhrub0@gmail.com](mailto:panditdhrub0@gmail.com) | Phone: +9779803862836 | [GitHub](https://github.com/dhrub4545) | [LeetCode](https://leetcode.com/u/Dhrub417183/) | [LinkedIn](https://www.linkedin.com/in/dhrub-pandit-2a4b37248/).
+
+STRICT RESPONSE FORMATTING GUIDELINES:
+1. Always format responses in clean, structured Markdown.
+2. Use **bold** for key technologies, project titles, metrics, and highlights.
+3. Use bullet points (• or -) for feature lists, skills, or achievements for instant scannability.
+4. When mentioning links, repositories, or websites, ALWAYS format them as markdown links, e.g. [AUDEX AI](https://www.audexai.in) or [GitHub Profile](https://github.com/dhrub4545).
+5. Keep your response concise (typically 2 to 4 short paragraphs or bullet groups). Avoid fluff, generic pleasantries, or repeating the user's question. Get straight to the answer.`;
+
+  // Provide compact recent conversation context if present
+  const formattedHistory = (history || [])
+    .slice(-4)
+    .filter(h => h.text && h.text.trim())
+    .map(h => `${h.role === 'user' ? 'Visitor' : 'Assistant'}: ${h.text}`)
+    .join('\n');
+
+  const fullPromptText = `${systemInstruction}
+
+${formattedHistory ? `Recent Conversation Context:\n${formattedHistory}\n\n` : ''}Visitor Question: ${prompt}
+
+Assistant:`;
 
   let lastError = null;
 
@@ -325,7 +345,7 @@ Answer politely, professionally, and concisely in markdown. Always represent Dhr
         body: JSON.stringify({
           contents: [
             {
-              parts: [{ text: `${systemInstruction}\n\nVisitor Question: ${prompt}` }]
+              parts: [{ text: fullPromptText }]
             }
           ]
         }),
