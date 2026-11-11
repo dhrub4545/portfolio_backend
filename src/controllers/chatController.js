@@ -230,18 +230,16 @@ Answer politely, professionally, and concisely in markdown. Always represent Dhr
     try {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 18000);
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           contents: [
             {
-              role: 'user',
               parts: [{ text: `${systemInstruction}\n\nVisitor Question: ${prompt}` }]
             }
           ]
