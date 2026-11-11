@@ -21,7 +21,8 @@ router.get('/chat/status', (req, res) => {
     status: 'ok',
     geminiKeyConfigured: hasKey,
     geminiKeyLength: keyLength,
-    candidateModels: [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash', 'gemini-4-argon'].filter(Boolean),
+    activeModel: 'gemini-3.5-flash',
+    candidateModels: [process.env.GEMINI_MODEL, 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash'].filter(Boolean),
     timestamp: new Date().toISOString()
   });
 });
@@ -33,7 +34,7 @@ router.get('/chat/test', async (req, res) => {
     return res.json({ error: 'No GEMINI_API_KEY found in process.env' });
   }
 
-  const modelToTest = req.query.model || 'gemini-flash-latest';
+  const modelToTest = req.query.model || 'gemini-3.5-flash';
 
   try {
     const genRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelToTest}:generateContent?key=${apiKey}`, {
