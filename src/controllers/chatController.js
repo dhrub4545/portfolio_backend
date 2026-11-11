@@ -213,69 +213,22 @@ function scoreModel(name) {
   return score;
 }
 
+const FAST_DEFAULT_MODELS = [
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest',
+  'gemini-3.5-flash-lite',
+  'gemini-3.5-flash'
+];
+
 /**
- * Discovers and adapts to the latest Gemini models via Google's /models API
+ * Returns prioritized candidate models:
+ * Prioritizes fast, verified models (like gemini-flash-lite-latest) to ensure sub-2-second latency
+ * and avoid serverless execution timeouts.
  */
-async function getAdaptiveModelList(apiKey) {
-  const now = Date.now();
-  if (cachedModels && (now - lastCacheTime < CACHE_TTL_MS)) {
-    if (lastWinningModel) {
-      return [...new Set([process.env.GEMINI_MODEL, lastWinningModel, ...cachedModels].filter(Boolean))];
-    }
-    return cachedModels;
-  }
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4500);
-
-    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-
-    if (listRes.ok) {
-      const data = await listRes.json();
-      const rawModels = (data.models || [])
-        .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
-        .map(m => m.name.replace('models/', ''))
-        .filter(m => {
-          const lower = m.toLowerCase();
-          // Filter to conversational Gemini/Gemma text models
-          if (!lower.includes('gemini') && !lower.includes('gemma')) return false;
-          // Filter out audio/image/robotics specialty tools
-          if (
-            lower.includes('tts') ||
-            lower.includes('transcribe') ||
-            lower.includes('image') ||
-            lower.includes('clip') ||
-            lower.includes('robotics') ||
-            lower.includes('computer-use') ||
-            lower.includes('nano')
-          ) return false;
-          return true;
-        });
-
-      if (rawModels.length > 0) {
-        rawModels.sort((a, b) => scoreModel(b) - scoreModel(a));
-        cachedModels = rawModels;
-        lastCacheTime = now;
-        console.log(`[Gemini Engine] Discovered and ranked ${rawModels.length} models. Newest candidate: ${rawModels[0]}`);
-      }
-    }
-  } catch (err) {
-    console.warn('[Gemini Engine] Model discovery lookup skipped, using active fallback pool:', err.message);
-  }
-
-  const fallbackDefaults = [
-    'gemini-flash-lite-latest',
-    'gemini-flash-latest',
-    'gemini-3.5-flash',
-    'gemini-3.5-flash-lite'
-  ];
-
-  const pool = (cachedModels && cachedModels.length > 0) ? cachedModels : fallbackDefaults;
-  return [...new Set([process.env.GEMINI_MODEL, lastWinningModel, ...pool].filter(Boolean))];
+function getAdaptiveModelList() {
+  const customModel = process.env.GEMINI_MODEL ? process.env.GEMINI_MODEL.trim() : null;
+  const pool = cachedModels && cachedModels.length > 0 ? cachedModels : FAST_DEFAULT_MODELS;
+  return [...new Set([customModel, lastWinningModel, ...pool].filter(Boolean))];
 }
 
 /**
@@ -335,7 +288,7 @@ Assistant:`;
     try {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 18000);
+      const timeoutId = setTimeout(() => controller.abort(), 6500);
 
       const response = await fetch(endpoint, {
         method: 'POST',
