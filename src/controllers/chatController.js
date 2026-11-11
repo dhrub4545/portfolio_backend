@@ -190,15 +190,18 @@ Would you like to know more about his **projects**, **skills**, **experience**, 
 
 let cachedModels = null;
 let lastCacheTime = 0;
-let lastWinningModel = 'gemini-3.5-flash';
+let lastWinningModel = 'gemini-flash-lite-latest';
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1-hour cache
 
 /**
  * Semantic scoring function that dynamically ranks Gemini models.
- * Automatically gives highest preference to newer generation versions (e.g. 5.0 > 4.5 > 4.0 > 3.8 > 3.5).
+ * Prioritizes gemini-flash-lite-latest and gemini-flash-latest, followed by newest generation versions.
  */
 function scoreModel(name) {
   let score = 0;
+  if (name === 'gemini-flash-lite-latest') score += 500;
+  if (name === 'gemini-flash-latest') score += 490;
+
   const match = name.match(/gemini-(\d+(?:\.\d+)?)/i);
   if (match) {
     score += parseFloat(match[1]) * 100;
@@ -265,10 +268,10 @@ async function getAdaptiveModelList(apiKey) {
   }
 
   const fallbackDefaults = [
+    'gemini-flash-lite-latest',
+    'gemini-flash-latest',
     'gemini-3.5-flash',
-    'gemini-3.5-flash-lite',
-    'gemini-3.8-flash',
-    'gemini-flash-latest'
+    'gemini-3.5-flash-lite'
   ];
 
   const pool = (cachedModels && cachedModels.length > 0) ? cachedModels : fallbackDefaults;

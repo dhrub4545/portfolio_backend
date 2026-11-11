@@ -24,7 +24,7 @@ router.get('/chat/status', (req, res) => {
     geminiKeyConfigured: hasKey,
     geminiKeyLength: keyLength,
     adaptiveDiscovery: true,
-    activeModel: adaptive.lastWinningModel || 'gemini-3.5-flash',
+    activeModel: adaptive.lastWinningModel || 'gemini-flash-lite-latest',
     discoveredCount: adaptive.discoveredCount,
     topRankedModels: adaptive.topDiscoveredModels,
     lastCacheUpdate: adaptive.lastCacheUpdate,
