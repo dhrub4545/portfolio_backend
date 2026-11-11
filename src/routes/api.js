@@ -12,8 +12,19 @@ router.get('/profile', (req, res) => {
   res.json(dhrubProfile);
 });
 
-// 2. AI Chatbot
+// 2. AI Chatbot & Status Diagnostics
 router.post('/chat', handleChat);
+router.get('/chat/status', (req, res) => {
+  const hasKey = !!process.env.GEMINI_API_KEY;
+  const keyLength = hasKey ? process.env.GEMINI_API_KEY.trim().length : 0;
+  res.json({
+    status: 'ok',
+    geminiKeyConfigured: hasKey,
+    geminiKeyLength: keyLength,
+    candidateModels: [process.env.GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'].filter(Boolean),
+    timestamp: new Date().toISOString()
+  });
+});
 
 // 3. Contact Form Submission
 router.post('/contact', submitContact);

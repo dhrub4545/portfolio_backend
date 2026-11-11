@@ -15,12 +15,18 @@ async function handleChat(req, res) {
     }
 
     const trimmedMsg = message.trim();
+    const rawKey = process.env.GEMINI_API_KEY;
+    const apiKey = rawKey ? rawKey.trim().replace(/^["']|["']$/g, '') : null;
 
     // Check if GEMINI_API_KEY is provided
-    if (process.env.GEMINI_API_KEY) {
+    if (apiKey) {
       try {
-        const geminiReply = await queryGemini(trimmedMsg, history);
-        return res.json({ reply: geminiReply, source: 'gemini' });
+        const geminiResult = await queryGemini(trimmedMsg, history, apiKey);
+        return res.json({
+          reply: typeof geminiResult === 'string' ? geminiResult : geminiResult.reply,
+          source: 'gemini',
+          model: geminiResult.model || 'gemini-latest'
+        });
       } catch (geminiError) {
         console.warn('Gemini API call failed, using intelligent local engine:', geminiError.message);
       }
@@ -183,11 +189,15 @@ Would you like to know more about his **projects**, **skills**, **experience**, 
 }
 
 /**
- * Optional Gemini API Call if GEMINI_API_KEY is configured
+ * Gemini API Call querying Google's latest models with automatic fallback
  */
-async function queryGemini(prompt, history) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+async function queryGemini(prompt, history, apiKey) {
+  const candidateModels = [
+    process.env.GEMINI_MODEL,
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
+  ].filter(Boolean);
 
   const systemInstruction = `You are the official AI Assistant for Dhrub Pandit's personal portfolio website. 
 Here are the verified facts about Dhrub:
@@ -214,25 +224,46 @@ Here are the verified facts about Dhrub:
 - Contact: panditdhrub0@gmail.com, +9779803862836, GitHub: https://github.com/dhrub4545, LeetCode: https://leetcode.com/u/Dhrub417183/.
 Answer politely, professionally, and concisely in markdown. Always represent Dhrub with enthusiasm and high technical accuracy.`;
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: `${systemInstruction}\n\nVisitor Question: ${prompt}` }]
-        }
-      ]
-    })
-  });
+  let lastError = null;
 
-  if (!response.ok) {
-    throw new Error(`Gemini HTTP error! status: ${response.status}`);
+  for (const model of candidateModels) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: `${systemInstruction}\n\nVisitor Question: ${prompt}` }]
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn(`Gemini model ${model} failed (status ${response.status}):`, errorText);
+        lastError = new Error(`Gemini HTTP error ${response.status}: ${errorText}`);
+        continue; // Try next model in candidate list
+      }
+
+      const data = await response.json();
+      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (replyText) {
+        return { reply: replyText, model };
+      }
+    } catch (err) {
+      lastError = err;
+      console.warn(`Error querying Gemini model ${model}:`, err.message);
+    }
   }
 
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || generateLocalResponse(prompt);
+  throw lastError || new Error('All Gemini candidate models failed.');
 }
 
 module.exports = { handleChat };
