@@ -195,10 +195,9 @@ async function queryGemini(prompt, history, apiKey) {
   const candidateModels = [
     process.env.GEMINI_MODEL,
     'gemini-flash-latest',
-    'gemini-3.8-flash',
+    'gemini-2.5-flash-lite',
     'gemini-3.5-flash',
-    'gemini-flash-lite-latest',
-    'gemini-pro-latest'
+    'gemini-3.8-flash'
   ].filter(Boolean);
 
   const systemInstruction = `You are the official AI Assistant for Dhrub Pandit's personal portfolio website. 
