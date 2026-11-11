@@ -26,6 +26,46 @@ router.get('/chat/status', (req, res) => {
   });
 });
 
+router.get('/chat/test', async (req, res) => {
+  const rawKey = process.env.GEMINI_API_KEY;
+  const apiKey = rawKey ? rawKey.trim().replace(/^["']|["']$/g, '') : null;
+  if (!apiKey) {
+    return res.json({ error: 'No GEMINI_API_KEY found in process.env' });
+  }
+
+  try {
+    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    const listData = await listRes.json();
+    if (!listRes.ok) {
+      return res.json({ listStatus: listRes.status, googleError: listData });
+    }
+
+    const allModels = (listData.models || []).map(m => m.name.replace('models/', ''));
+    const contentModels = (listData.models || [])
+      .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+      .map(m => m.name.replace('models/', ''));
+
+    // Try a simple generateContent call
+    const testModel = contentModels.find(m => m.includes('flash')) || contentModels[0] || 'gemini-1.5-flash';
+    const genRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${testModel}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: 'Respond with: PONG' }] }] })
+    });
+    const genData = await genRes.json();
+
+    return res.json({
+      googleConnected: true,
+      allModelsCount: allModels.length,
+      contentModels,
+      testedModel: testModel,
+      genResult: genData.candidates?.[0]?.content?.parts?.[0]?.text || genData
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // 3. Contact Form Submission
 router.post('/contact', submitContact);
 
