@@ -127,6 +127,20 @@ You can filter and explore all of them in the **Projects** section on this page!
 • Verified with an official certificate which you can view right in the **Experience** section of this portfolio!`;
   }
 
+  // Certifications & Verified Credentials
+  if (q.includes('certificat') || q.includes('credential') || q.includes('license') || q.includes('nec') || q.includes('iit') || q.includes('nptel') || q.includes('codeathon') || q.includes('hackathon') || q.includes('award')) {
+    return `Dhrub holds **10 verified credentials and honors**, strategically ranked with top job assets first:
+
+1. 🏛️ **Nepal Engineering Council (NEC) Statutory License** (Reg No: 102299) — Official Government Licensure as a Professional Computer Engineer under the NEC Act 1999.
+2. 🏆 **IIT Madras & NPTEL Elite Certification** (Roll: NPTEL23CS95S14643889) — Elite 64% with 25/25 assignment record in *Programming, Data Structures & Algorithms Using Python*.
+3. 💼 **Karunadu Technologies ML Internship** (KTPT/INT/2026/1338) — Production machine learning engineering and Django inference integration.
+4. ☁️ **Google Cloud Gen AI Exchange Hackathon 2025** (2025H2S08GH-P1000338) — Prototype submission for *Personalized Career & Skills Advisor*.
+5. 🏦 **RBI Innovation Hub, IIIT Bangalore & Canara Bank 24h Codeathon** — High-intensity AI & Data Science hackathon with Team Veda.
+6. 📄 **International Conference Research Paper (ICDIES-2026)** (P-ISBN: 978-93-7837-204-9) — *"QUIZZY- Automated Question Generator Using LLM"*.
+
+You can inspect the high-resolution certificate scans and download official verification PDFs directly in the interactive **Certifications** section!`;
+  }
+
   // 9. Contact / Email / Phone / Socials
   if (q.includes('contact') || q.includes('email') || q.includes('hire') || q.includes('phone') || q.includes('reach') || q.includes('message')) {
     return `You can get in touch with Dhrub directly:

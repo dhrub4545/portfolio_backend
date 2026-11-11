@@ -184,8 +184,85 @@ const dhrubProfile = {
     leetcode: "200+",
     modelsBenchmarked: "579+",
     yearsCoding: "4+",
+    certificationsCount: "10 Verified Credentials",
     status: "Available for Full-Time Roles & AI Projects"
-  }
+  },
+
+  certifications: [
+    {
+      title: "General Registered Computer Engineer",
+      issuer: "Nepal Engineering Council (NEC)",
+      regNo: "102299",
+      date: "October 2026",
+      type: "Government Statutory Licensure",
+      rank: 1,
+      isTopValued: true
+    },
+    {
+      title: "Elite: Programming, Data Structures & Algorithms Using Python",
+      issuer: "IIT Madras & NPTEL (Govt. of India / SWAYAM)",
+      rollNo: "NPTEL23CS95S14643889",
+      score: "64% Elite (25/25 in Assignments)",
+      date: "Jul-Sep 2023",
+      rank: 2,
+      isTopValued: true
+    },
+    {
+      title: "Python Programming & Applied Machine Learning Internship",
+      issuer: "Karunadu Technologies Private Limited",
+      certId: "KTPT/INT/2026/1338",
+      date: "Feb 2026 - May 2026",
+      rank: 3,
+      isTopValued: true
+    },
+    {
+      title: "Google Cloud Gen AI Exchange Hackathon 2025 Prototype",
+      issuer: "Google Cloud & Hack2Skill",
+      certId: "2025H2S08GH-P1000338",
+      date: "January 2026",
+      rank: 4,
+      isTopValued: true
+    },
+    {
+      title: "24-Hour AI & Data Science Codeathon 2024",
+      issuer: "Reserve Bank Innovation Hub (RBIH), IIIT Bangalore & Canara Bank",
+      team: "Team Veda",
+      date: "November 2024",
+      rank: 5,
+      isTopValued: true
+    },
+    {
+      title: "Published Paper: 'QUIZZY- Automated Question Generator Using LLM'",
+      issuer: "7th International Conference on Digital Intelligence & Engineered Systems (ICDIES-2026)",
+      isbn: "978-93-7837-204-9",
+      date: "May 2026",
+      rank: 6
+    },
+    {
+      title: "Certificate of Excellence in Computer Science & Engineering",
+      issuer: "R.R. Institute of Technology (VTU)",
+      date: "2024-2026",
+      rank: 7
+    },
+    {
+      title: "Inter-Collegiate Project Exhibition — Tech Tarang 2025",
+      issuer: "IEEE Bangalore Section & City Engineering College",
+      date: "November 2025",
+      rank: 8
+    },
+    {
+      title: "Generative AI Mastery — India's Biggest GenAI Buildathon",
+      issuer: "OpenAI Academy Learning Community & NxtWave",
+      date: "August 2025",
+      rank: 9
+    },
+    {
+      title: "3rd Place in Web Design (PRAUDYOGIK-2k24)",
+      issuer: "Dept. of CSE, RRIT & Pro-Greeks",
+      date: "February 2024",
+      rank: 10
+    }
+  ]
 };
 
 module.exports = dhrubProfile;
