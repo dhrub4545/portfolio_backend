@@ -160,7 +160,7 @@ You can also send a direct message using the interactive **Contact Form** at the
 
   // 11. Location / Origin
   if (q.includes('where') || q.includes('location') || q.includes('based') || q.includes('nepal') || q.includes('bengaluru') || q.includes('bangalore')) {
-    return `Dhrub is currently based in **Bengaluru, India** (where he completed his B.E. in Computer Science at RRIT) and is originally from **Nepal**. He is an officially licensed engineer by the **Nepal Engineering Council (NEC)**.`;
+    return `Dhrub is based in **Nepal / Bengaluru, India** (where he completed his B.E. in Computer Science at RRIT). He is an officially licensed engineer by the **Nepal Engineering Council (NEC)**.`;
   }
 
   // 12. Default Greeting / General

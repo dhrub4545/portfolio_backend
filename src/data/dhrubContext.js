@@ -10,7 +10,7 @@ const dhrubProfile = {
     headline: "Nepal Engineering Council (NEC) Licensed Computer Science Engineer",
     email: "panditdhrub0@gmail.com",
     phone: "+9779803862836",
-    location: "Bengaluru, India / Nepal",
+    location: "Nepal / Bengaluru, India",
     github: "https://github.com/dhrub4545",
     linkedin: "https://www.linkedin.com/in/dhrub-pandit",
     leetcode: "https://leetcode.com/u/Dhrub417183/",
