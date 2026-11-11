@@ -4,7 +4,7 @@ const fs = require('fs');
 const router = express.Router();
 
 const dhrubProfile = require('../data/dhrubContext');
-const { handleChat } = require('../controllers/chatController');
+const { handleChat, getAdaptiveModelStatus } = require('../controllers/chatController');
 const { submitContact, getStats, recordPageView } = require('../controllers/contactController');
 
 // 1. Profile information
@@ -17,12 +17,17 @@ router.post('/chat', handleChat);
 router.get('/chat/status', (req, res) => {
   const hasKey = !!process.env.GEMINI_API_KEY;
   const keyLength = hasKey ? process.env.GEMINI_API_KEY.trim().length : 0;
+  const adaptive = getAdaptiveModelStatus();
+
   res.json({
     status: 'ok',
     geminiKeyConfigured: hasKey,
     geminiKeyLength: keyLength,
-    activeModel: 'gemini-3.5-flash',
-    candidateModels: [process.env.GEMINI_MODEL, 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash'].filter(Boolean),
+    adaptiveDiscovery: true,
+    activeModel: adaptive.lastWinningModel || 'gemini-3.5-flash',
+    discoveredCount: adaptive.discoveredCount,
+    topRankedModels: adaptive.topDiscoveredModels,
+    lastCacheUpdate: adaptive.lastCacheUpdate,
     timestamp: new Date().toISOString()
   });
 });

@@ -188,16 +188,98 @@ Feel free to ask me anything, such as:
 Would you like to know more about his **projects**, **skills**, **experience**, or **how to contact him**?`;
 }
 
+let cachedModels = null;
+let lastCacheTime = 0;
+let lastWinningModel = 'gemini-3.5-flash';
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1-hour cache
+
 /**
- * Gemini API Call querying Google's latest models with automatic fallback
+ * Semantic scoring function that dynamically ranks Gemini models.
+ * Automatically gives highest preference to newer generation versions (e.g. 5.0 > 4.5 > 4.0 > 3.8 > 3.5).
  */
-async function queryGemini(prompt, history, apiKey) {
-  const candidateModels = [
-    process.env.GEMINI_MODEL,
+function scoreModel(name) {
+  let score = 0;
+  const match = name.match(/gemini-(\d+(?:\.\d+)?)/i);
+  if (match) {
+    score += parseFloat(match[1]) * 100;
+  }
+  // Reward low-latency conversational models suitable for web chat
+  if (name.includes('flash') && !name.includes('lite')) score += 30;
+  if (name.includes('flash-lite') || name.includes('lite')) score += 15;
+  if (name.includes('latest')) score += 10;
+  return score;
+}
+
+/**
+ * Discovers and adapts to the latest Gemini models via Google's /models API
+ */
+async function getAdaptiveModelList(apiKey) {
+  const now = Date.now();
+  if (cachedModels && (now - lastCacheTime < CACHE_TTL_MS)) {
+    if (lastWinningModel) {
+      return [...new Set([process.env.GEMINI_MODEL, lastWinningModel, ...cachedModels].filter(Boolean))];
+    }
+    return cachedModels;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (listRes.ok) {
+      const data = await listRes.json();
+      const rawModels = (data.models || [])
+        .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+        .map(m => m.name.replace('models/', ''))
+        .filter(m => {
+          const lower = m.toLowerCase();
+          // Filter to conversational Gemini/Gemma text models
+          if (!lower.includes('gemini') && !lower.includes('gemma')) return false;
+          // Filter out audio/image/robotics specialty tools
+          if (
+            lower.includes('tts') ||
+            lower.includes('transcribe') ||
+            lower.includes('image') ||
+            lower.includes('clip') ||
+            lower.includes('robotics') ||
+            lower.includes('computer-use') ||
+            lower.includes('nano')
+          ) return false;
+          return true;
+        });
+
+      if (rawModels.length > 0) {
+        rawModels.sort((a, b) => scoreModel(b) - scoreModel(a));
+        cachedModels = rawModels;
+        lastCacheTime = now;
+        console.log(`[Gemini Engine] Discovered and ranked ${rawModels.length} models. Newest candidate: ${rawModels[0]}`);
+      }
+    }
+  } catch (err) {
+    console.warn('[Gemini Engine] Model discovery lookup skipped, using active fallback pool:', err.message);
+  }
+
+  const fallbackDefaults = [
     'gemini-3.5-flash',
     'gemini-3.5-flash-lite',
-    'gemini-3.8-flash'
-  ].filter(Boolean);
+    'gemini-3.8-flash',
+    'gemini-flash-latest'
+  ];
+
+  const pool = (cachedModels && cachedModels.length > 0) ? cachedModels : fallbackDefaults;
+  return [...new Set([process.env.GEMINI_MODEL, lastWinningModel, ...pool].filter(Boolean))];
+}
+
+/**
+ * Gemini API Call querying Google's latest models with automated adaptation and fallback
+ */
+async function queryGemini(prompt, history, apiKey) {
+  const candidateModels = await getAdaptiveModelList(apiKey);
 
   const systemInstruction = `You are the official AI Assistant for Dhrub Pandit's personal portfolio website. 
 Here are the verified facts about Dhrub:
@@ -252,12 +334,13 @@ Answer politely, professionally, and concisely in markdown. Always represent Dhr
         const errorText = await response.text();
         console.warn(`Gemini model ${model} failed (status ${response.status}):`, errorText);
         lastError = new Error(`Gemini HTTP error ${response.status}: ${errorText}`);
-        continue; // Try next model in candidate list
+        continue; // Try next model in adaptive candidate list
       }
 
       const data = await response.json();
       const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (replyText) {
+        lastWinningModel = model; // Automatically pin and remember current active model
         return { reply: replyText, model };
       }
     } catch (err) {
@@ -269,4 +352,13 @@ Answer politely, professionally, and concisely in markdown. Always represent Dhr
   throw lastError || new Error('All Gemini candidate models failed.');
 }
 
-module.exports = { handleChat };
+function getAdaptiveModelStatus() {
+  return {
+    lastWinningModel,
+    discoveredCount: cachedModels ? cachedModels.length : 0,
+    topDiscoveredModels: cachedModels ? cachedModels.slice(0, 5) : ['gemini-3.5-flash', 'gemini-3.5-flash-lite'],
+    lastCacheUpdate: lastCacheTime ? new Date(lastCacheTime).toISOString() : null
+  };
+}
+
+module.exports = { handleChat, getAdaptiveModelStatus };
