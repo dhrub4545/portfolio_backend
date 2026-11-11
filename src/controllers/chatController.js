@@ -231,6 +231,9 @@ Answer politely, professionally, and concisely in markdown. Always represent Dhr
   for (const model of candidateModels) {
     try {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -244,8 +247,10 @@ Answer politely, professionally, and concisely in markdown. Always represent Dhr
               parts: [{ text: `${systemInstruction}\n\nVisitor Question: ${prompt}` }]
             }
           ]
-        })
+        }),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();

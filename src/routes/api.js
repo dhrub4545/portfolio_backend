@@ -33,49 +33,24 @@ router.get('/chat/test', async (req, res) => {
     return res.json({ error: 'No GEMINI_API_KEY found in process.env' });
   }
 
+  const modelToTest = req.query.model || 'gemini-flash-latest';
+
   try {
-    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-    const listData = await listRes.json();
-    if (!listRes.ok) {
-      return res.json({ listStatus: listRes.status, googleError: listData });
-    }
-
-    const allModels = (listData.models || []).map(m => m.name.replace('models/', ''));
-    const contentModels = (listData.models || [])
-      .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
-      .map(m => m.name.replace('models/', ''));
-
-    // Try candidate models in order until one succeeds
-    const candidates = [process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-pro-latest'].filter(Boolean);
-    let successfulModel = null;
-    let successfulResult = null;
-    let modelAttempts = [];
-
-    for (const model of candidates) {
-      try {
-        const genRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: 'Respond in one short sentence: Gemini API is online!' }] }] })
-        });
-        const genData = await genRes.json();
-        const text = genData.candidates?.[0]?.content?.parts?.[0]?.text;
-        modelAttempts.push({ model, status: genRes.status, success: !!text, response: text || genData.error?.message });
-        if (text) {
-          successfulModel = model;
-          successfulResult = text;
-          break;
-        }
-      } catch (err) {
-        modelAttempts.push({ model, error: err.message });
-      }
-    }
+    const genRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelToTest}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: 'Say: Hello from Dhrub Pandit portfolio!' }] }] })
+    });
+    const genData = await genRes.json();
+    const text = genData.candidates?.[0]?.content?.parts?.[0]?.text;
 
     return res.json({
       googleConnected: true,
-      successfulModel,
-      reply: successfulResult,
-      attempts: modelAttempts
+      testedModel: modelToTest,
+      status: genRes.status,
+      success: !!text,
+      reply: text || null,
+      rawError: text ? null : genData
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });
