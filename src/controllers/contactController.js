@@ -76,6 +76,56 @@ ${message}
 
   // Try Official Meta WhatsApp Cloud API
   if (metaToken && phoneId) {
+    // Attempt 1: Send via official approved template 'portfolio_inquiry' (Bypasses 24h window!)
+    try {
+      const endpoint = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      const templatePayload = {
+        messaging_product: 'whatsapp',
+        to: recipientPhone,
+        type: 'template',
+        template: {
+          name: 'portfolio_inquiry',
+          language: { code: 'en' },
+          components: [
+            {
+              type: 'body',
+              parameters: [
+                { type: 'text', text: name || 'Visitor' },
+                { type: 'text', text: email || 'Not provided' },
+                { type: 'text', text: subject || 'Portfolio Inquiry' },
+                { type: 'text', text: message || 'No message content' }
+              ]
+            }
+          ]
+        }
+      };
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${metaToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(templatePayload),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`[Contact] Official Meta Template alert delivered to ${recipientPhone} (ID: ${data.messages?.[0]?.id})`);
+        return true;
+      } else {
+        console.warn(`[Contact] Meta Template failed (${res.status}), trying free-form text fallback:`, JSON.stringify(data));
+      }
+    } catch (err) {
+      console.warn('[Contact] Meta Template request error:', err.message);
+    }
+
+    // Attempt 2: Fallback to free-form text (active if within 24h user conversation window)
     try {
       const endpoint = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
       const controller = new AbortController();
@@ -101,10 +151,10 @@ ${message}
 
       const data = await res.json();
       if (res.ok) {
-        console.log(`[Contact] Official Meta WhatsApp alert delivered to ${recipientPhone} (ID: ${data.messages?.[0]?.id})`);
+        console.log(`[Contact] Meta Text alert delivered to ${recipientPhone} (ID: ${data.messages?.[0]?.id})`);
         return true;
       } else {
-        console.warn(`[Contact] Meta WhatsApp API response (${res.status}):`, JSON.stringify(data));
+        console.warn(`[Contact] Meta WhatsApp API text response (${res.status}):`, JSON.stringify(data));
       }
     } catch (err) {
       console.warn('[Contact] Meta WhatsApp API request failed:', err.message);

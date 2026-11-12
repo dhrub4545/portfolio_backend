@@ -93,6 +93,48 @@ router.get('/contact/whatsapp-test', async (req, res) => {
 
   try {
     const endpoint = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
+
+    // 1. Try template portfolio_inquiry
+    const tRes = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: recipientPhone,
+        type: 'template',
+        template: {
+          name: 'portfolio_inquiry',
+          language: { code: 'en' },
+          components: [
+            {
+              type: 'body',
+              parameters: [
+                { type: 'text', text: 'Jane Doe' },
+                { type: 'text', text: 'jane@company.com' },
+                { type: 'text', text: 'Diagnostic Verification' },
+                { type: 'text', text: 'Live diagnostic test from Vercel!' }
+              ]
+            }
+          ]
+        }
+      })
+    });
+    const tData = await tRes.json();
+
+    if (tRes.ok) {
+      return res.json({
+        configured: true,
+        mode: 'template',
+        metaHttpCode: tRes.status,
+        recipientPhone,
+        metaResponse: tData
+      });
+    }
+
+    // 2. Fallback text
     const metaRes = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -112,6 +154,8 @@ router.get('/contact/whatsapp-test', async (req, res) => {
     const metaData = await metaRes.json();
     return res.json({
       configured: true,
+      mode: 'text-fallback',
+      templateError: tData,
       metaHttpCode: metaRes.status,
       tokenLength: token.length,
       tokenPrefix: token.substring(0, 12) + '...',
