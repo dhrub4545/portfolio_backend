@@ -47,7 +47,7 @@ function ensureDataFiles() {
 ensureDataFiles();
 
 async function sendWhatsAppNotification(name, email, subject, message) {
-  // 1. Official Meta WhatsApp Cloud API configuration
+  // 1. Official Meta WhatsApp Cloud API configuration (Supports Permanent System User Tokens)
   const metaToken = (
     process.env.META_WHATSAPP_TOKEN ||
     process.env.WHATSAPP_ACCESS_TOKEN ||
