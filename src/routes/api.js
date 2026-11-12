@@ -63,8 +63,66 @@ router.get('/chat/test', async (req, res) => {
   }
 });
 
-// 3. Contact Form Submission
+// 3. Contact Form Submission & WhatsApp Diagnostic
 router.post('/contact', submitContact);
+router.get('/contact/whatsapp-test', async (req, res) => {
+  const token = (
+    process.env.META_WHATSAPP_TOKEN ||
+    process.env.WHATSAPP_ACCESS_TOKEN ||
+    process.env.WHATSAPP_TOKEN ||
+    process.env.META_ACCESS_TOKEN ||
+    ''
+  ).trim();
+
+  const phoneId = (
+    process.env.META_PHONE_NUMBER_ID ||
+    process.env.WHATSAPP_PHONE_NUMBER_ID ||
+    '1487993791054252'
+  ).trim();
+
+  const recipientPhone = (process.env.WHATSAPP_PHONE || '9779803862836').replace(/[^\d]/g, '');
+
+  if (!token) {
+    return res.json({
+      configured: false,
+      error: 'No WhatsApp token found in process.env.',
+      checkedKeys: ['META_WHATSAPP_TOKEN', 'WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_TOKEN', 'META_ACCESS_TOKEN'],
+      hint: 'In Vercel, after saving environment variables, please Redeploy the latest deployment for changes to take effect.'
+    });
+  }
+
+  try {
+    const endpoint = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
+    const metaRes = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: recipientPhone,
+        type: 'text',
+        text: {
+          body: `🔔 *Dhrub Pandit Portfolio Alert*\nLive diagnostic test from Vercel! Your WhatsApp connection is 100% active. 🚀`
+        }
+      })
+    });
+
+    const metaData = await metaRes.json();
+    return res.json({
+      configured: true,
+      metaHttpCode: metaRes.status,
+      tokenLength: token.length,
+      tokenPrefix: token.substring(0, 12) + '...',
+      phoneId,
+      recipientPhone,
+      metaResponse: metaData
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // 4. Analytics & Stats
 router.get('/stats', getStats);

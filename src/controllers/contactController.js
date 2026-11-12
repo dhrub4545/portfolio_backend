@@ -132,7 +132,7 @@ ${message}
   return false;
 }
 
-function submitContact(req, res) {
+async function submitContact(req, res) {
   try {
     const { name, email, subject, message } = req.body;
 
@@ -192,15 +192,24 @@ function submitContact(req, res) {
       // Ignored in serverless
     }
 
-    // Forward notification to WhatsApp if CallMeBot is configured
-    sendWhatsAppNotification(newMessage.name, newMessage.email, newMessage.subject, newMessage.message).catch(
-      (err) => console.warn('[Contact] Async WhatsApp delivery error:', err.message)
-    );
+    // Await WhatsApp notification to prevent Vercel serverless container from freezing mid-dispatch
+    let whatsappDelivered = false;
+    try {
+      whatsappDelivered = await sendWhatsAppNotification(
+        newMessage.name,
+        newMessage.email,
+        newMessage.subject,
+        newMessage.message
+      );
+    } catch (waErr) {
+      console.warn('[Contact] WhatsApp dispatch warning:', waErr.message);
+    }
 
     return res.status(201).json({
       success: true,
       message: `Thank you, ${name}! Your message has been received. Dhrub will get back to you shortly at ${email}.`,
-      messageId: newMessage.id
+      messageId: newMessage.id,
+      whatsappDelivered
     });
   } catch (error) {
     console.error('Error saving contact message:', error);
