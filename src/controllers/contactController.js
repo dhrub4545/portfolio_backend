@@ -47,36 +47,89 @@ function ensureDataFiles() {
 ensureDataFiles();
 
 async function sendWhatsAppNotification(name, email, subject, message) {
-  const apiKey = process.env.CALLMEBOT_API_KEY;
-  const phone = process.env.WHATSAPP_PHONE || '+9779803862836';
+  // 1. Official Meta WhatsApp Cloud API configuration
+  const metaToken = (
+    process.env.META_WHATSAPP_TOKEN ||
+    process.env.WHATSAPP_ACCESS_TOKEN ||
+    process.env.WHATSAPP_TOKEN ||
+    process.env.META_ACCESS_TOKEN ||
+    ''
+  ).trim();
 
-  if (!apiKey) {
-    return; // CallMeBot key not configured
-  }
+  const phoneId = (
+    process.env.META_PHONE_NUMBER_ID ||
+    process.env.WHATSAPP_PHONE_NUMBER_ID ||
+    '1487993791054252'
+  ).trim();
 
-  const text = `🔔 *New Portfolio Inquiry!*
+  const recipientPhone = (process.env.WHATSAPP_PHONE || '9779803862836').replace(/[^\d]/g, '');
+
+  const textBody = `🔔 *New Portfolio Inquiry!*
 👤 *From:* ${name}
 📧 *Email:* ${email}
-📌 *Subject:* ${subject}
+📌 *Subject:* ${subject || 'General Inquiry'}
 
 💬 *Message:*
 ${message}
 
 ⏰ *Received:* ${new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kathmandu' })} (Nepal Time)`;
 
-  try {
-    const cleanPhone = phone.replace(/[^\d+]/g, '');
-    const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(cleanPhone)}&text=${encodeURIComponent(text)}&apikey=${apiKey.trim()}`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (res.ok) {
-      console.log(`[Contact] WhatsApp alert dispatched successfully to ${cleanPhone}`);
+  // Try Official Meta WhatsApp Cloud API
+  if (metaToken && phoneId) {
+    try {
+      const endpoint = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${metaToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: recipientPhone,
+          type: 'text',
+          text: {
+            body: textBody
+          }
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`[Contact] Official Meta WhatsApp alert delivered to ${recipientPhone} (ID: ${data.messages?.[0]?.id})`);
+        return true;
+      } else {
+        console.warn(`[Contact] Meta WhatsApp API response (${res.status}):`, JSON.stringify(data));
+      }
+    } catch (err) {
+      console.warn('[Contact] Meta WhatsApp API request failed:', err.message);
     }
-  } catch (err) {
-    console.warn('[Contact] WhatsApp notification dispatch warning:', err.message);
   }
+
+  // 2. Fallback to CallMeBot if configured
+  const callMeBotKey = process.env.CALLMEBOT_API_KEY;
+  if (callMeBotKey) {
+    try {
+      const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(recipientPhone)}&text=${encodeURIComponent(textBody)}&apikey=${callMeBotKey.trim()}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (res.ok) {
+        console.log(`[Contact] CallMeBot alert dispatched to ${recipientPhone}`);
+        return true;
+      }
+    } catch (err) {
+      console.warn('[Contact] CallMeBot notification failed:', err.message);
+    }
+  }
+
+  return false;
 }
 
 function submitContact(req, res) {
