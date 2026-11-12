@@ -119,7 +119,7 @@ const dhrubProfile = {
     },
     {
       id: "ypss",
-      title: "YPSS — Enterprise School ERP & Bilingual AI Question Engine",
+      title: "YPSS (Yashoda Prem Shishu Sadan) — Enterprise School ERP & Bilingual AI Question Engine",
       period: "2026",
       category: "Full Stack",
       featured: true,
